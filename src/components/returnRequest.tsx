@@ -7,7 +7,7 @@ import {
   ArrowBigUp,
   ArrowBigDown,
 } from "lucide-react";
-
+import { Upload, Download, Printer, Mail, Trash2 } from "lucide-react";
 import {
   collection,
   query,
@@ -17,7 +17,7 @@ import {
   endAt,
   Timestamp,
 } from "firebase/firestore";
-import { db } from "../firebase/firebaseServices.ts";
+import { db } from "../firebase/firebaseService.ts";
 import { useDebounce } from "../hooks/useDebounce.ts";
 
 interface ReturnRequest {
@@ -364,7 +364,6 @@ export const ReturnRequests: React.FC = () => {
                 <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                   <div className="flex items-center justify-end space-x-2">
                     <div className="relative">
-                      {/* Plus Icon for Action Menu */}
                       <button
                         className="p-1 rounded-md hover:bg-gray-100"
                         onClick={() =>
@@ -395,8 +394,8 @@ export const ReturnRequests: React.FC = () => {
                         </div>
                       )}
                     </div>
-                    <div className="relative">
-                      {/* More Vertical Icon for Dropdown Menu */}
+                    {/* <div className="relative">
+                      
                       <button
                         className="p-1 rounded-md hover:bg-gray-100"
                         onClick={() =>
@@ -410,7 +409,45 @@ export const ReturnRequests: React.FC = () => {
                       {activeDropdown === request.id && (
                         <div className="absolute right-0 mt-2 w-48 rounded-lg shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-50">
                           <div className="py-1">
-                            {/* Dropdown menu items */}
+                          
+                          </div>
+                        </div>
+                      )}
+                    </div> */}
+                    <div className="relative">
+                      <button
+                        className="p-1 rounded-md hover:bg-gray-100"
+                        onClick={() =>
+                          setActiveDropdown(
+                            activeDropdown === request.id ? null : request.id
+                          )
+                        }
+                      >
+                        <MoreVertical className="h-4 w-4 text-gray-400" />
+                      </button>
+                      {activeDropdown === request.id && (
+                        <div className="absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-50">
+                          <div className="py-1">
+                            <button className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full">
+                              <Upload className="h-4 w-4 mr-3" />
+                              Upload Document
+                            </button>
+                            <button className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full">
+                              <Download className="h-4 w-4 mr-3" />
+                              Download PDF
+                            </button>
+                            <button className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full">
+                              <Printer className="h-4 w-4 mr-3" />
+                              Send Fax
+                            </button>
+                            <button className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full">
+                              <Mail className="h-4 w-4 mr-3" />
+                              Send Email
+                            </button>
+                            <button className="flex items-center px-4 py-2 text-sm text-red-600 hover:bg-gray-100 w-full">
+                              <Trash2 className="h-4 w-4 mr-3" />
+                              Delete Item
+                            </button>
                           </div>
                         </div>
                       )}

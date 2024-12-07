@@ -20,7 +20,7 @@ import {
   endAt,
   where,
 } from "firebase/firestore";
-import { db } from "../firebase/firebaseServices.ts";
+import { db } from "../firebase/firebaseService.ts";
 import { useDebounce } from "../hooks/useDebounce.ts";
 
 interface ReturnOrder {
