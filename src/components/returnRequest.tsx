@@ -15,6 +15,7 @@ import {
 } from "firebase/firestore";
 import { db } from "../firebase/firebaseServices.ts";
 import { useDebounce } from "../hooks/useDebounce.ts";
+import { Timestamp } from "firebase/firestore"; // Ensure Timestamp is imported
 
 interface ReturnRequest {
   id: string;
@@ -23,10 +24,7 @@ interface ReturnRequest {
   diopter: string;
   cylinder: string | "NA";
   serialNumber: string;
-  createdOn: {
-    date: string;
-    time: string;
-  };
+  createdOn: Timestamp; // Update createdOn to be a Timestamp
 }
 
 type SortField = "distributor" | "createdOn" | "serialNumber";
@@ -99,8 +97,9 @@ export const ReturnRequests: React.FC = () => {
       let comparison = 0;
 
       if (field === "createdOn") {
-        const dateA = new Date(`${a.createdOn.date} ${a.createdOn.time}`);
-        const dateB = new Date(`${b.createdOn.date} ${b.createdOn.time}`);
+        // Handle the comparison of timestamps properly
+        const dateA = a.createdOn.toDate();
+        const dateB = b.createdOn.toDate();
         comparison = dateA.getTime() - dateB.getTime();
       } else {
         comparison = a[field].localeCompare(b[field]);
@@ -145,6 +144,7 @@ export const ReturnRequests: React.FC = () => {
       {/* Search and Filters */}
       <div className="px-6 py-4 flex justify-between items-center">
         <div className="relative flex-1 max-w-md">
+          {/* Magnifying Glass Icon for search */}
           <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
           <input
             type="text"
@@ -173,6 +173,7 @@ export const ReturnRequests: React.FC = () => {
             </div>
           )}
         </div>
+        {/* Filter Icon */}
         <button className="ml-4 inline-flex items-center px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
           <FunnelIcon className="h-4 w-4 mr-2" />
           Filter
@@ -263,14 +264,15 @@ export const ReturnRequests: React.FC = () => {
                   {request.serialNumber}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  <div>{request.createdOn.date}</div>
+                  <div>{request.createdOn.toDate().toLocaleDateString()}</div>
                   <div className="text-xs text-gray-400">
-                    {request.createdOn.time}
+                    {request.createdOn.toDate().toLocaleTimeString()}
                   </div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                   <div className="flex items-center justify-end space-x-2">
                     <div className="relative">
+                      {/* Plus Icon for Action Menu */}
                       <button
                         className="p-1 rounded-md hover:bg-gray-100"
                         onClick={() =>
@@ -302,6 +304,7 @@ export const ReturnRequests: React.FC = () => {
                       )}
                     </div>
                     <div className="relative">
+                      {/* More Vertical Icon for Dropdown Menu */}
                       <button
                         className="p-1 rounded-md hover:bg-gray-100"
                         onClick={() =>
@@ -315,7 +318,7 @@ export const ReturnRequests: React.FC = () => {
                       {activeDropdown === request.id && (
                         <div className="absolute right-0 mt-2 w-48 rounded-lg shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-50">
                           <div className="py-1">
-                            {/* Dropdown menu items would go here */}
+                            {/* Dropdown menu items */}
                           </div>
                         </div>
                       )}

@@ -20,6 +20,7 @@ import {
 } from "firebase/firestore";
 import { db } from "../firebase/firebaseServices.ts";
 import { useDebounce } from "../hooks/useDebounce.ts";
+import { Timestamp } from "firebase/firestore";
 
 interface ReturnOrder {
   id: string;
@@ -58,16 +59,32 @@ export const ReturnOrder: React.FC = () => {
     const fetchOrders = async () => {
       const ordersRef = collection(db, "returnOrder");
       let q = query(ordersRef, orderBy("createdOn", "desc"));
-      console.log("data", ordersRef);
+
       if (statusFilter) {
         q = query(q, where("status", "==", statusFilter));
       }
 
       const snapshot = await getDocs(q);
-      const fetchedOrders = snapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      })) as ReturnOrder[];
+      const fetchedOrders = snapshot.docs.map((doc) => {
+        const data = doc.data();
+        const createdOn =
+          data.createdOn instanceof Timestamp
+            ? data.createdOn.toDate()
+            : new Date();
+
+        return {
+          id: doc.id,
+          orderId: data.orderId,
+          distributor: data.distributor,
+          createdOn: {
+            date: createdOn.toLocaleDateString(),
+            time: createdOn.toLocaleTimeString(),
+          },
+          noOfItems: data.noOfItems,
+          status: data.status,
+        } as ReturnOrder;
+      });
+
       setOrders(fetchedOrders);
     };
     fetchOrders();
