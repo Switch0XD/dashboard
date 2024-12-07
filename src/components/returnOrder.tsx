@@ -56,7 +56,7 @@ export const ReturnOrder: React.FC = () => {
   // Fetch initial data
   useEffect(() => {
     const fetchOrders = async () => {
-      const ordersRef = collection(db, "returnOrders");
+      const ordersRef = collection(db, "returnOrder");
       let q = query(ordersRef, orderBy("createdOn", "desc"));
       console.log("data", ordersRef);
       if (statusFilter) {
@@ -81,7 +81,7 @@ export const ReturnOrder: React.FC = () => {
         return;
       }
 
-      const ordersRef = collection(db, "returnOrders");
+      const ordersRef = collection(db, "returnOrder");
       const q = query(
         ordersRef,
         orderBy("orderId"),
