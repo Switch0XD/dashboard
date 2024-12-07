@@ -6,8 +6,6 @@ This is a **React** application built with **TypeScript** and **TailwindCSS** fo
 
 The project demonstrates a fully responsive, modern dashboard with a sidebar using **React** and **TailwindCSS**. The data is fetched and displayed from Firebase Realtime Database, providing real-time updates in the application.
 
-![Dashboard Screenshot](./screenshots/dashboard.png) <!-- Update with the correct path and filename of the screenshot -->
-
 ## Features
 
 - **Responsive Sidebar**: A collapsible sidebar that works across devices.
