@@ -4,7 +4,10 @@ import {
   FilterIcon as FunnelIcon,
   MoreVertical,
   Plus,
+  ArrowBigUp,
+  ArrowBigDown,
 } from "lucide-react";
+
 import {
   collection,
   query,
@@ -12,10 +15,10 @@ import {
   orderBy,
   startAt,
   endAt,
+  Timestamp,
 } from "firebase/firestore";
 import { db } from "../firebase/firebaseServices.ts";
 import { useDebounce } from "../hooks/useDebounce.ts";
-import { Timestamp } from "firebase/firestore"; // Ensure Timestamp is imported
 
 interface ReturnRequest {
   id: string;
@@ -24,17 +27,39 @@ interface ReturnRequest {
   diopter: string;
   cylinder: string | "NA";
   serialNumber: string;
-  createdOn: Timestamp; // Update createdOn to be a Timestamp
+  createdOn: {
+    date: string;
+    time: string;
+  };
 }
 
 type SortField = "distributor" | "createdOn" | "serialNumber";
 type SortOrder = "asc" | "desc";
+type Order = {
+  d: SortOrder;
+  c: SortOrder;
+  o: SortOrder;
+};
 
 export const ReturnRequests: React.FC = () => {
   const [requests, setRequests] = useState<ReturnRequest[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [selectedRequests, setSelectedRequests] = useState<string[]>([]);
+  const [showDropdown, setShowDropdown] = useState(false);
+  const [columOrder, setColumnOrder] = useState<Order>({
+    d: "desc",
+    c: "desc",
+    o: "desc",
+  });
+
+  const toggleOrder = (key: keyof typeof columOrder) => {
+    setColumnOrder((prevState) => ({
+      ...prevState,
+      [key]: prevState[key] === "asc" ? "desc" : "asc",
+    }));
+  };
+
   const [sortConfig, setSortConfig] = useState<{
     field: SortField;
     order: SortOrder;
@@ -53,10 +78,22 @@ export const ReturnRequests: React.FC = () => {
       const requestsRef = collection(db, "returnRequests");
       const q = query(requestsRef, orderBy("createdOn", "desc"));
       const snapshot = await getDocs(q);
-      const fetchedRequests = snapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      })) as ReturnRequest[];
+      const fetchedRequests = snapshot.docs.map((doc) => {
+        const data = doc.data();
+
+        const createdOn =
+          data.createdOn instanceof Timestamp
+            ? data.createdOn.toDate()
+            : new Date(data.createdOn);
+        return {
+          id: doc.id,
+          ...data,
+          createdOn: {
+            date: createdOn.toLocaleDateString(),
+            time: createdOn.toLocaleTimeString(),
+          },
+        };
+      }) as ReturnRequest[];
       setRequests(fetchedRequests);
     };
     fetchRequests();
@@ -97,9 +134,10 @@ export const ReturnRequests: React.FC = () => {
       let comparison = 0;
 
       if (field === "createdOn") {
-        // Handle the comparison of timestamps properly
-        const dateA = a.createdOn.toDate();
-        const dateB = b.createdOn.toDate();
+        // Compare Date objects directly
+        const dateA = new Date(a.createdOn.date);
+        const dateB = new Date(b.createdOn.date);
+
         comparison = dateA.getTime() - dateB.getTime();
       } else {
         comparison = a[field].localeCompare(b[field]);
@@ -144,7 +182,6 @@ export const ReturnRequests: React.FC = () => {
       {/* Search and Filters */}
       <div className="px-6 py-4 flex justify-between items-center">
         <div className="relative flex-1 max-w-md">
-          {/* Magnifying Glass Icon for search */}
           <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
           <input
             type="text"
@@ -173,11 +210,56 @@ export const ReturnRequests: React.FC = () => {
             </div>
           )}
         </div>
-        {/* Filter Icon */}
-        <button className="ml-4 inline-flex items-center px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
-          <FunnelIcon className="h-4 w-4 mr-2" />
-          Filter
-        </button>
+        <div>
+          <button
+            onClick={() => setShowDropdown(!showDropdown)}
+            className="ml-4 inline-flex items-center px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+          >
+            <FunnelIcon className="h-4 w-4 mr-2" />
+            Filter
+          </button>
+          {showDropdown && (
+            <ul
+              role="menu"
+              className="absolute mt-5 right-10 z-10 min-w-[180px] overflow-auto rounded-lg border border-slate-200 bg-white p-1.5 shadow-lg shadow-sm focus:outline-none"
+            >
+              <li
+                role="menuitem"
+                onClick={() => {
+                  handleSort("distributor");
+                  toggleOrder("d");
+                }}
+                className="cursor-pointer text-slate-800 flex w-full text-sm items-center rounded-md p-3 transition-all hover:bg-slate-100 focus:bg-slate-100 active:bg-slate-100"
+              >
+                {columOrder.d === "asc" ? <ArrowBigUp /> : <ArrowBigDown />}
+                <span className="ml-3">Distributor</span>
+              </li>
+              <li
+                role="menuitem"
+                onClick={() => {
+                  handleSort("createdOn");
+                  toggleOrder("c");
+                }}
+                className="cursor-pointer text-slate-800 flex w-full text-sm items-center rounded-md p-3 transition-all hover:bg-slate-100 focus:bg-slate-100 active:bg-slate-100"
+              >
+                {columOrder.c === "asc" ? <ArrowBigUp /> : <ArrowBigDown />}
+
+                <span className="ml-3">Created On</span>
+              </li>
+              <li
+                role="menuitem"
+                onClick={() => {
+                  handleSort("serialNumber");
+                  toggleOrder("o");
+                }}
+                className="cursor-pointer text-slate-800 flex w-full text-sm items-center rounded-md p-3 transition-all hover:bg-slate-100 focus:bg-slate-100 active:bg-slate-100"
+              >
+                {columOrder.o === "asc" ? <ArrowBigUp /> : <ArrowBigDown />}
+                <span className="ml-3">Serial Number</span>
+              </li>
+            </ul>
+          )}
+        </div>
       </div>
 
       {/* Table */}
@@ -244,11 +326,11 @@ export const ReturnRequests: React.FC = () => {
                   <input
                     type="checkbox"
                     className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                    checked={selectedRequests.includes(request.id)}
                     onChange={() => handleCheckboxChange(request.id)}
+                    checked={selectedRequests.includes(request.id)}
                   />
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                   {request.distributor}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
@@ -264,11 +346,21 @@ export const ReturnRequests: React.FC = () => {
                   {request.serialNumber}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  <div>{request.createdOn.toDate().toLocaleDateString()}</div>
-                  <div className="text-xs text-gray-400">
-                    {request.createdOn.toDate().toLocaleTimeString()}
-                  </div>
+                  {request.createdOn.date} {request.createdOn.time}
                 </td>
+                {/* <td className="relative px-6 py-3">
+                  <div className="absolute inset-y-0 right-0 flex items-center pr-2">
+                    <button
+                      type="button"
+                      className="inline-flex justify-center p-2 text-gray-400 hover:text-gray-500"
+                      id="options-menu-0"
+                      onClick={() => setActiveActionMenu(request.id)}
+                    >
+                      <MoreVertical className="w-5 h-5" />
+                    </button>
+                  </div>
+                </td> */}
+
                 <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                   <div className="flex items-center justify-end space-x-2">
                     <div className="relative">

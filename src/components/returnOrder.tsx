@@ -8,6 +8,8 @@ import {
   Printer,
   Mail,
   Trash2,
+  ArrowBigUp,
+  ArrowBigDown,
 } from "lucide-react";
 import {
   collection,
@@ -20,7 +22,6 @@ import {
 } from "firebase/firestore";
 import { db } from "../firebase/firebaseServices.ts";
 import { useDebounce } from "../hooks/useDebounce.ts";
-import { Timestamp } from "firebase/firestore";
 
 interface ReturnOrder {
   id: string;
@@ -36,12 +37,18 @@ interface ReturnOrder {
 
 type SortField = "distributor" | "createdOn" | "orderId";
 type SortOrder = "asc" | "desc";
-
+type Order = {
+  d: SortOrder;
+  c: SortOrder;
+  o: SortOrder;
+};
 export const ReturnOrder: React.FC = () => {
   const [orders, setOrders] = useState<ReturnOrder[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [selectedOrders, setSelectedOrders] = useState<string[]>([]);
+  const [showDropdown, setShowDropdown] = useState(false);
+
   const [sortConfig, setSortConfig] = useState<{
     field: SortField;
     order: SortOrder;
@@ -53,38 +60,32 @@ export const ReturnOrder: React.FC = () => {
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
   const debouncedSearchTerm = useDebounce(searchTerm, 300);
-
+  const [columOrder, setColumnOrder] = useState<Order>({
+    d: "desc",
+    c: "desc",
+    o: "desc",
+  });
   // Fetch initial data
+  const toggleOrder = (key: keyof typeof columOrder) => {
+    setColumnOrder((prevState) => ({
+      ...prevState,
+      [key]: prevState[key] === "asc" ? "desc" : "asc",
+    }));
+  };
   useEffect(() => {
     const fetchOrders = async () => {
       const ordersRef = collection(db, "returnOrder");
       let q = query(ordersRef, orderBy("createdOn", "desc"));
-
+      console.log("data", ordersRef);
       if (statusFilter) {
         q = query(q, where("status", "==", statusFilter));
       }
 
       const snapshot = await getDocs(q);
-      const fetchedOrders = snapshot.docs.map((doc) => {
-        const data = doc.data();
-        const createdOn =
-          data.createdOn instanceof Timestamp
-            ? data.createdOn.toDate()
-            : new Date();
-
-        return {
-          id: doc.id,
-          orderId: data.orderId,
-          distributor: data.distributor,
-          createdOn: {
-            date: createdOn.toLocaleDateString(),
-            time: createdOn.toLocaleTimeString(),
-          },
-          noOfItems: data.noOfItems,
-          status: data.status,
-        } as ReturnOrder;
-      });
-
+      const fetchedOrders = snapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      })) as ReturnOrder[];
       setOrders(fetchedOrders);
     };
     fetchOrders();
@@ -125,8 +126,10 @@ export const ReturnOrder: React.FC = () => {
       let comparison = 0;
 
       if (field === "createdOn") {
-        const dateA = new Date(`${a.createdOn.date} ${a.createdOn.time}`);
-        const dateB = new Date(`${b.createdOn.date} ${b.createdOn.time}`);
+        // Compare Date objects directly
+        const dateA = new Date(a.createdOn.date);
+        const dateB = new Date(b.createdOn.date);
+
         comparison = dateA.getTime() - dateB.getTime();
       } else {
         comparison = a[field].localeCompare(b[field]);
@@ -228,10 +231,56 @@ export const ReturnOrder: React.FC = () => {
               </div>
             )}
           </div>
-          <button className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
-            <FunnelIcon className="h-4 w-4 mr-2" />
-            Filter
-          </button>
+          <div>
+            <button
+              onClick={() => setShowDropdown(!showDropdown)}
+              className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+            >
+              <FunnelIcon className="h-4 w-4 mr-2" />
+              Filter
+            </button>
+            {showDropdown && (
+              <ul
+                role="menu"
+                className="absolute mt-5 right-10 z-10 min-w-[180px] overflow-auto rounded-lg border border-slate-200 bg-white p-1.5 shadow-lg shadow-sm focus:outline-none"
+              >
+                <li
+                  role="menuitem"
+                  onClick={() => {
+                    handleSort("distributor");
+                    toggleOrder("d");
+                  }}
+                  className="cursor-pointer text-slate-800 flex w-full text-sm items-center rounded-md p-3 transition-all hover:bg-slate-100 focus:bg-slate-100 active:bg-slate-100"
+                >
+                  {columOrder.d === "asc" ? <ArrowBigUp /> : <ArrowBigDown />}
+                  <span className="ml-3">Distributor</span>
+                </li>
+                <li
+                  role="menuitem"
+                  onClick={() => {
+                    handleSort("createdOn");
+                    toggleOrder("c");
+                  }}
+                  className="cursor-pointer text-slate-800 flex w-full text-sm items-center rounded-md p-3 transition-all hover:bg-slate-100 focus:bg-slate-100 active:bg-slate-100"
+                >
+                  {columOrder.c === "asc" ? <ArrowBigUp /> : <ArrowBigDown />}
+
+                  <span className="ml-3">Created On</span>
+                </li>
+                <li
+                  role="menuitem"
+                  onClick={() => {
+                    handleSort("orderId");
+                    toggleOrder("o");
+                  }}
+                  className="cursor-pointer text-slate-800 flex w-full text-sm items-center rounded-md p-3 transition-all hover:bg-slate-100 focus:bg-slate-100 active:bg-slate-100"
+                >
+                  {columOrder.o === "asc" ? <ArrowBigUp /> : <ArrowBigDown />}
+                  <span className="ml-3">order Id</span>
+                </li>
+              </ul>
+            )}
+          </div>
         </div>
       </div>
 
@@ -303,9 +352,11 @@ export const ReturnOrder: React.FC = () => {
                   {order.distributor}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  <div>{order.createdOn.date}</div>
+                  <div>
+                    {order?.createdOn?.date?.toString() || "07/12/2024"}
+                  </div>
                   <div className="text-xs text-gray-400">
-                    {order.createdOn.time}
+                    {order?.createdOn?.time || " 12:57:31 AM"}
                   </div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
